@@ -9,7 +9,6 @@ Interactive flow:
   3. POST /api/jobs/{id}/select → send selected particle indices, unblocks the job
 
 Start with:
-    conda activate /home/jerryhua/conda-envs/DPS311
     python server.py
 """
 
@@ -419,8 +418,11 @@ _MODEL_REPOS = {
     # weights resolve (the symlink into /data, compute-node-only).
     "fluxfm": ("FLUX-FM", "models--black-forest-labs--FLUX.1-dev", "FLUX_LOCAL_PATH"),
 }
-_FLUXFM_LORA = ("/home/jerryhua/diffusion/model_inference/fluxfm_guidance/"
-                "checkpoints/flux-flowmap-lora-512/pytorch_lora_weights.safetensors")
+_FLUXFM_LORA = os.path.join(
+    os.environ.get("FLUXFM_LORA_PATH",
+                   os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "models", "flux-flowmap-lora-512")),
+    "pytorch_lora_weights.safetensors")
 
 
 def _model_loadable(key) -> bool:
@@ -483,7 +485,8 @@ def dev_exec(req: dict):
                 "error": _tb.format_exc()[-2000:]}
 
 
-app.post("/api/dev/exec")(dev_exec)
+if os.environ.get("LTNT_DEV") == "1":
+    app.post("/api/dev/exec")(dev_exec)
 
 
 def dev_vram():
@@ -509,7 +512,8 @@ def dev_vram():
     return out
 
 
-app.get("/api/dev/vram")(dev_vram)
+if os.environ.get("LTNT_DEV") == "1":
+    app.get("/api/dev/vram")(dev_vram)
 
 
 def dev_reload_fluxfm():
@@ -531,7 +535,8 @@ def dev_reload_fluxfm():
     return {"reloaded": True, "sampler_swapped": swapped}
 
 
-app.post("/api/dev/reload_fluxfm")(dev_reload_fluxfm)
+if os.environ.get("LTNT_DEV") == "1":
+    app.post("/api/dev/reload_fluxfm")(dev_reload_fluxfm)
 
 
 def list_models():
@@ -1596,8 +1601,9 @@ def _do_generate(job_id: str, req: dict) -> dict:
                 # 512-res flow-map LoRA.
                 lora_path=os.environ.get(
                     "FLUXFM_LORA_PATH",
-                    "/home/jerryhua/diffusion/model_inference/"
-                    "fluxfm_guidance/checkpoints/flux-flowmap-lora-512")))
+                    os.path.join(
+                        os.path.dirname(os.path.abspath(__file__)),
+                        "models", "flux-flowmap-lora-512"))))
             _warm_fluxfm = sampler
         sampler._ptree_pool = list(_ptree_pool)
         # Vocabulary-band routing (measured law: scene words actualize at
@@ -2931,4 +2937,5 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--port", type=int, default=8001)
     srv_args = p.parse_args()
-    uvicorn.run(app, host="0.0.0.0", port=srv_args.port, reload=False)
+    uvicorn.run(app, host=os.environ.get("LTNT_HOST", "127.0.0.1"),
+                port=srv_args.port, reload=False)

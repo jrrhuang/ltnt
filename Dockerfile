@@ -6,6 +6,6 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY server/ server/
 COPY run.sh .
-ENV LTNT_MODELS=/models PORT=8001
+ENV LTNT_MODELS=/models PORT=8001 LTNT_HOST=0.0.0.0
 EXPOSE 8001
 CMD ["bash", "run.sh"]
