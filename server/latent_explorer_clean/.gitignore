@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Environment
+.env
+*.env
+
+# IDE / editor
+.vscode/
+.idea/
+.claude/
+*.swp
+*.bak
+*.bak-*
+*.batching-experimental
+
+# OS
+.DS_Store
+Thumbs.db
+
+# HuggingFace cache
+.cache/
+
+# Generated outputs
+outputs/
+generated/
+logs/
+
+# Frontend build artifacts & deps
+ltnt_frontend/node_modules/
+ltnt_frontend/dist/
+
+# PDFs / papers
+*.pdf
+
+# Local progress notes
+PROGRESS.md
+
+# Local dev files
+commands.txt
+environment.yml
+*.ipynb
+
+# Large model files
+*.safetensors
+*.bin
+*.ckpt
+*.pt

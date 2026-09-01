@@ -1,0 +1,16 @@
+torch>=2.4
+diffusers>=0.31
+transformers>=4.44
+accelerate
+safetensors
+fastapi
+uvicorn[standard]
+python-multipart
+click
+pillow
+numpy
+scikit-learn
+umap-learn
+sentencepiece
+protobuf
+peft

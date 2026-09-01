@@ -1,0 +1,57 @@
+# Outputs and logs
+outputs/
+logs/
+
+# PDFs (papers)
+*.pdf
+
+# Job scripts (cluster-specific)
+job_*.sh
+test_*.sh
+download_*.sh
+*_install.sh
+
+# Stress test scripts (development/debugging)
+stress_test_*.py
+
+# Legacy inference scripts
+sd35_inference.py
+flux1_inference.py
+flux2_inference.py
+flux_kontext_inference.py
+fluxfm_sampler_tt.py
+cluster_seeds.py
+
+# Internal FLUX guidance code (submodule / not for public)
+fluxfm_guidance/
+
+# Progress notes (internal)
+progress_sf.md
+usage.md
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.eggs/
+
+# Environment
+.env
+*.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# HuggingFace cache
+.cache/
+
+# Conda
+*.conda

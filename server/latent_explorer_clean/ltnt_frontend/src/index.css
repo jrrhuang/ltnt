@@ -1,0 +1,182 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Custom cursor (disabled — use native cursor) */
+
+/* ============================================================================
+   THEME — the regular-usage UI (generate -> cluster session flow) is themeable
+   light/dark and DEFAULTS TO DARK to match the flagship create-map aesthetic
+   (near-black bg, light text, blue glow accents). App.jsx sets data-theme on
+   <html> from localStorage('ltnt.theme'); the toggle in ClusterView flips it.
+   Components read the SEMANTIC vars below (--bg/--panel/--text/... ) so a single
+   attribute swap re-skins the whole session UI.
+   ============================================================================ */
+:root, :root[data-theme="dark"] {
+  /* DARK (default) — flagship palette */
+  --bg: #0b0d10;             /* app / canvas background (near-black) */
+  --panel: #14171c;          /* sidebars, cards, pills */
+  --panel-2: #1b1f26;        /* nested panels / hover */
+  --sidebar: #14171c;
+  --dark: #f2f4f8;           /* was the "ink" swatch — now the strong fg on dark */
+  --text: #e7ebf0;           /* primary text */
+  --muted: #8a93a0;          /* secondary text */
+  --border: #262c34;         /* hairlines */
+  --accent: #4a90d9;         /* blue glow accent (matches map views) */
+  --accent-soft: #16324a;    /* accent-tinted panel bg */
+  --good: #1e3a24;           /* success-tinted panel bg */
+  --warn: #3a331a;           /* warning-tinted panel bg */
+  --info: #16324a;           /* info-tinted panel bg */
+  --on-accent: #0b0d10;      /* text on an accent-filled button */
+  --tile-empty: #23282f;     /* empty image tile bg */
+  --danger: #ff6b6b;         /* error text */
+  --danger-border: #5a2626;  /* error banner hairline */
+  --font: 'Space Mono', 'Courier New', monospace;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  /* LIGHT — the original generic layout, kept as an opt-in */
+  --bg: #e8e8e8;
+  --panel: #ffffff;
+  --panel-2: #f8f8f8;
+  --sidebar: #ffffff;
+  --dark: #111111;
+  --text: #1a1a1a;
+  --muted: #888888;
+  --border: #d0d0d0;
+  --accent: #2f5a7a;
+  --accent-soft: #e8f2ff;
+  --good: #eefbe8;
+  --warn: #fffbe8;
+  --info: #e8f2ff;
+  --on-accent: #ffffff;
+  --tile-empty: #dddddd;
+  --danger: #c00000;
+  --danger-border: #ffcccc;
+  --font: 'Space Mono', 'Courier New', monospace;
+  color-scheme: light;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+#root {
+  height: 100vh;
+  width: 100vw;
+}
+
+button {
+  font-family: var(--font);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+input, textarea {
+  font-family: var(--font);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: inherit;
+  background: none;
+  border: none;
+  outline: none;
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--muted);
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+
+@keyframes ltnt-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Refine-in-progress spinner (on-tile overlay while ✦ refine runs). */
+.ltnt-refine-spinner {
+  animation: ltnt-spin 0.8s linear infinite;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 10px;
+  background: var(--accent);
+  cursor: pointer;
+}
+
+/* Loading shimmer for image tiles (sits behind the <img>; the image covers it
+   once it finishes loading) — replaces the blank gray "is it hung?" tiles. */
+@keyframes ltnt-shimmer {
+  0%   { background-position: 150% 0; }
+  100% { background-position: -150% 0; }
+}
+.ltnt-tile-loading {
+  background-image: linear-gradient(100deg,
+    var(--tile-empty) 30%, var(--panel-2) 50%, var(--tile-empty) 70%);
+  background-size: 220% 100%;
+  animation: ltnt-shimmer 1.25s ease-in-out infinite;
+}
+
+/* Keyboard focus ring for board pins (a11y: actions reveal on focus too) */
+.ltnt-pin:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* REFINE (full-quality render) — button reveals on tile hover; shimmer overlay
+   while the server integrates the full fine schedule for that particle. */
+.ltnt-refine-btn {
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.ltnt-tile:hover .ltnt-refine-btn,
+.ltnt-refine-btn:disabled {
+  opacity: 1;
+}
+/* Hover "REFINE" label under the ✦ (critic-6 #1: discoverability). Hidden by
+   default so the resting affordance is just the ✦; revealed when the tile is
+   hovered (alongside the button itself). */
+.ltnt-refine-label {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.12s, opacity 0.12s;
+}
+.ltnt-tile:hover .ltnt-refine-label {
+  max-height: 12px;
+  opacity: 1;
+}
+@keyframes ltnt-refine-shimmer {
+  0%   { background-position: 150% 0; }
+  100% { background-position: -150% 0; }
+}
+.ltnt-refine-shimmer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(100deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.55) 50%, rgba(255,255,255,0) 70%);
+  background-size: 220% 100%;
+  animation: ltnt-refine-shimmer 1.25s ease-in-out infinite;
+}

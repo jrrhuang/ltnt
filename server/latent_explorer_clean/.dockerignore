@@ -1,0 +1,15 @@
+.git
+__pycache__
+*.pyc
+node_modules
+ltnt_frontend/node_modules
+ltnt_frontend/dist
+generated/
+outputs/
+*.pdf
+*.ipynb
+.env
+.DS_Store
+.claude
+.vscode
+.idea
