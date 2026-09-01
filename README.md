@@ -1,56 +1,109 @@
-# LTNT — Latent Navigator
+# LTNT
 
-**An interactive tool for artists to explore the latent space of diffusion
-models.** Generate a spread of images, pick the ones that speak to you, and
-breed them — LTNT spawns children of your picks, from wide global
-re-imaginings down to local detail variations, with an LLM proposing
-alternative readings of your prompt along the way. You are the reward signal.
+A latent-space navigator for image models. Instead of one image per prompt,
+LTNT generates a population, shows you how its members relate, and lets you
+breed the ones you like into further generations.
 
-Built on flow-matching models (FLUX.1-dev + a distilled flow map for
-~seconds-fast iteration; Krea-2 for maximum quality) and a sequential
-Monte Carlo loop where selection happens in the browser.
+A text-to-image model does not hold a single picture for a prompt. It holds a
+space of interpretations — compositions, palettes, framings, readings of the
+same words — and a prompt box samples that space blindly. LTNT makes the space
+navigable: generate a spread, select what interests you, and spawn children of
+your selections. Repeat, and the tree that grows is the record of your choices.
 
-## Two ways to run
+## The loop
 
-### 1. Your own GPU (any CUDA machine, ≥40 GB VRAM recommended)
+1. **Generate.** Enter a prompt. The system runs a spread of generations in
+   parallel and previews each one partway through the diffusion trajectory.
+2. **Arrange.** Previews are embedded with DINOv2 and placed on a canvas where
+   proximity means visual kinship. Distinct readings of the prompt form
+   distinct clusters.
+3. **Select.** Click the images worth developing. Unselected images stay on the
+   canvas, desaturated.
+4. **Breed.** Each selection spawns children that share its direction and
+   differ from each other. Children are placed around their parent.
+5. **Repeat.** Two or three rounds produce a tree rooted in the first spread.
+
+Branching happens at intermediate states, not finished images. A half-resolved
+image is still undecided, so its children are genuine alternatives rather than
+edits of a settled picture.
+
+## Requirements
+
+- NVIDIA GPU with at least 40 GB of memory
+- CUDA 12.x driver
+- Python 3.10 or newer
+- ~40 GB of disk for model weights
+- A Hugging Face account with access to `black-forest-labs/FLUX.1-dev`
+
+## Run on your own GPU
+
+Accept the FLUX.1-dev license at
+https://huggingface.co/black-forest-labs/FLUX.1-dev, then create a read token
+at https://huggingface.co/settings/tokens.
 
 ```bash
-git clone <this-repo> && cd ltnt
-python -m venv venv && . venv/bin/activate
+git clone https://github.com/jrrhuang/ltnt.git
+cd ltnt
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-# Accept the FLUX.1-dev license on HuggingFace, then:
 export HF_TOKEN=<your token>
-bash run.sh          # downloads models on first boot (~35 GB), serves :8001
+bash run.sh
 ```
 
-Open http://localhost:8001 — type a prompt, GENERATE, click images you
-like, BREED. That's the whole loop.
+The first run downloads FLUX.1-dev and the flow-map LoRA into `models/`.
+Subsequent runs start from that cache. Open http://localhost:8001, type a
+prompt, and press GENERATE.
 
-### 2. RunPod (no GPUs of your own — you pay per GPU-hour)
+To serve on a different port or interface:
 
-1. Create a RunPod account and add credits.
-2. Deploy a pod from the Docker image built by this repo's CI
-   (`ghcr.io/<owner>/ltnt:latest`), GPU type A40/L40S/A100 (≥40 GB),
-   expose port **8001**, and set the env var `HF_TOKEN` to your
-   HuggingFace token (with FLUX.1-dev access accepted).
-3. First boot downloads models (~35 GB, one-time per volume — attach a
-   RunPod network volume at `/models` to persist them).
-4. Open the pod's port-8001 URL. Same loop, in your browser.
+```bash
+PORT=9000 LTNT_HOST=0.0.0.0 bash run.sh
+```
+
+On a remote machine, keep the default loopback binding and forward the port:
+
+```bash
+ssh -N -L 8001:localhost:8001 user@host
+```
+
+## Run on a rented GPU
+
+TBD.
 
 ## Models
-| backend | role | notes |
-|---|---|---|
-| FLUX-FM | fast path — breeds in seconds | FLUX.1-dev + 512px flow-map LoRA (auto-downloaded) |
-| Krea-2 | quality path | gated on HF; optional |
 
-## How it works (short version)
-Round 1 casts a spread from noise. Selecting images and breeding spawns
-children by re-noising each pick to a scheduled depth and transporting back
-with the flow map — deep re-noise early (global structural variety, with the
-LLM's wild prompt readings), shallow late (local refinement, readings that
-restyle rather than recompose). Diversity decreases approximately linearly
-across rounds by design. Every session is seeded and replayable, and each
-round records labeled metadata (`interval_*/meta.json`).
+| Model | Role |
+|---|---|
+| FLUX.1-dev + flow-map LoRA | Fast path. Seconds per generation. Downloaded automatically. |
+| Krea-2 | Quality path. Requires separate access to the Krea weights. |
+
+Set `LTNT_MODELS` to place weights outside the repository.
+
+## Spawning
+
+`server/spawn/` holds the strategies that turn a parent into children. Each is
+a callable mapping a parent latent to a child latent, selected by name:
+
+| Strategy | Mechanism | Parameters |
+|---|---|---|
+| `renoise` | Renoise the parent latent to `t + rho(1-t)`, then integrate down. | `rho`, `steps` |
+| `lookahead` | Renoise the parent's clean-image estimate, then integrate down. | `tau`, `steps` |
+| `glass` | GLASS bridge to a noise floor, then integrate down. | `rho`, `inner_steps`, `sigma_floor` |
+
+`rho` sets how far a child travels from its parent: near 0 keeps the parent's
+structure, near 1 approaches an independent sample. Prompt variation composes
+with any strategy through `plan_brood`, which assigns per-child conditioning
+without touching the spawn mechanism. See `server/spawn/README.md`.
+
+## Tests
+
+```bash
+pip install pytest
+python -m pytest server/spawn/tests -q
+```
+
+The suite runs on CPU and needs no model weights.
 
 ## License
-MIT (see LICENSE).
+
+MIT.

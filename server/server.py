@@ -464,7 +464,6 @@ def _model_loadable(key) -> bool:
         return False
 
 
-@app.get("/api/models")
 def dev_exec(req: dict):
     """Run code in the live server process. Localhost surface only.
 
@@ -539,6 +538,7 @@ if os.environ.get("LTNT_DEV") == "1":
     app.post("/api/dev/reload_fluxfm")(dev_reload_fluxfm)
 
 
+@app.get("/api/models")
 def list_models():
     """Honest availability of each headline model on THIS instance.
 
