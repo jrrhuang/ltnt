@@ -12,20 +12,14 @@ sharpens.
 
 ## Workflow
 
-1. **Generate.** A prompt gives you a canvas of candidates covering different
-   readings of it.
-2. **Make more like these.** Select your favorites. New variations appear near
-   them and stay close to what you picked. Unpicked images fade back but stay
-   on the canvas.
-3. **Explore.** The canvas organizes itself by visual similarity, so related
-   images sit together and you can see the range the model has for your prompt.
-4. **Refine.** Each round generates variations closer to your picks, so the
-   spread narrows as your taste sharpens.
+1. **Generate.** A prompt fills the canvas with candidates.
+2. **Make more like these.** Select your favorites and LTNT generates
+   variations from them.
+3. **Explore.** The canvas organizes itself by visual similarity.
+4. **Refine.** Repeat until the spread settles on what you want.
 
-Variations branch partway through the generation, while the image is still
-unresolved, which is what gives them room to differ from what you picked.
-Images are embedded with DINOv2 and projected into two dimensions, which is
-what puts visually similar ones near each other on the canvas.
+Variations branch partway through generation, while the image is still
+unresolved. DINOv2 embeddings decide where images land on the canvas.
 
 ## Installation
 
@@ -43,9 +37,8 @@ bash download_models.sh
 
 FLUX.1-dev is gated. Accept the license at
 https://huggingface.co/black-forest-labs/FLUX.1-dev, then log in with
-`huggingface-cli login` so the download can reach it. `download_models.sh`
-skips anything already present, so an interrupted download resumes by running
-it again.
+`huggingface-cli login`. `download_models.sh` skips anything already present
+and can be re-run.
 
 ## Usage
 
@@ -72,7 +65,7 @@ takes 83 seconds for higher quality. Krea-2 is gated separately and downloads
 only when `LTNT_WITH_KREA=1`.
 
 LTNT runs on self-consistent flow-matching models. Distilled few-step models
-break the assumption the variation step relies on.
+are unsupported.
 
 ## Deployment
 
