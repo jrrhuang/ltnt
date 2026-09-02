@@ -16,7 +16,7 @@ sharpens.
 2. **Pick + "make more like these."** LTNT generates variations from your
    selections.
 3. **Explore.** The canvas organizes itself by visual similarity.
-4. **Refine.** Repeat until the spread settles on what you want.
+4. **Refine.** Repeat.
 
 Variations branch partway through generation, while the image is still
 unresolved. DINOv2 embeddings decide where images land on the canvas.
@@ -25,6 +25,9 @@ unresolved. DINOv2 embeddings decide where images land on the canvas.
 
 Needs an NVIDIA GPU with at least 40 GB of memory, a CUDA 12.x driver, Python
 3.10 or newer, and 40 GB of free disk.
+
+Accept the FLUX.1-dev license at
+https://huggingface.co/black-forest-labs/FLUX.1-dev.
 
 ```bash
 git clone https://github.com/jrrhuang/ltnt.git
@@ -35,11 +38,6 @@ huggingface-cli login
 bash download_models.sh
 ```
 
-FLUX.1-dev is gated. Accept the license at
-https://huggingface.co/black-forest-labs/FLUX.1-dev, then log in with
-`huggingface-cli login`. `download_models.sh` skips anything already present
-and can be re-run.
-
 ## Usage
 
 ```bash
@@ -49,23 +47,21 @@ bash run.sh
 Open http://localhost:8001, enter a prompt, and press GENERATE. The first
 prompt loads the model and takes a few minutes. Subsequent rounds take seconds.
 
-Set `PORT` to serve elsewhere, `LTNT_HOST=0.0.0.0` to bind all interfaces, and
-`LTNT_MODELS` to keep weights outside the repository. When the server runs on a
-remote machine, forward the port and open the same address locally.
+For a remote GPU, forward the port and open the same address locally.
 
 ```bash
 ssh -N -L 8001:localhost:8001 user@host
 ```
 
+Set `LTNT_MODELS` to store weights outside the repository.
+
 ## Models
 
-FLUX.1-dev with a distilled flow-map LoRA is the default and takes about 13
-seconds per round on an L40S. Plain FLUX.1-dev takes 25 seconds, and Krea-2
-takes 83 seconds for higher quality. Krea-2 is gated separately and downloads
-only when `LTNT_WITH_KREA=1`.
+LTNT supports FLUX.1-dev with the distilled flow-map LoRA, plain FLUX.1-dev,
+and Krea-2. The flow-map model is the default and the fastest.
 
-LTNT runs on self-consistent flow-matching models. Distilled few-step models
-are unsupported.
+Krea-2 is gated separately. Set `LTNT_WITH_KREA=1` when running
+`download_models.sh` to download it.
 
 ## License
 
