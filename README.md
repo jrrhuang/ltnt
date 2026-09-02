@@ -58,8 +58,8 @@ Set `LTNT_MODELS` to store weights outside the repository.
 
 ## Models
 
-LTNT supports FLUX.1-dev with the distilled flow-map LoRA, plain FLUX.1-dev,
-and Krea-2. The flow-map model is the default and the fastest.
+LTNT supports FLUX.1-dev and Krea-2, with a faster FLUX option for interactive
+use. The faster option is the default.
 
 Krea-2 is gated separately. Set `LTNT_WITH_KREA=1` when running
 `download_models.sh` to download it.
