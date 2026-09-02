@@ -68,6 +68,7 @@ from flux_fmtt_dev import (  # noqa: E402
     compute_linear_diversity_schedule,
 )
 from cluster_images import plot_image_cluster  # noqa: E402
+from spawn import legacy as spawn_legacy  # noqa: E402
 
 
 # =============================================================================
@@ -287,7 +288,9 @@ class FluxFMWDMInteractive(FluxFlowMapVLMSampler):
                        t_seg_start: float, t_seg_end: float,
                        t_RN: float, prompt_embeds: torch.Tensor,
                        pooled_prompt_embeds: torch.Tensor,
-                       guidance_scale: float) -> torch.Tensor:
+                       guidance_scale: float,
+                       master_seed=None, stage: int = 0,
+                       child_index: int = 0) -> torch.Tensor:
         """One WDM clone jump:
           1. ε ~ N(0, I), renoise anchor from t_seg_start to noisier t_RN.
           2. Flow-map jump from t_RN to t_seg_end in one NFE.
@@ -295,7 +298,10 @@ class FluxFMWDMInteractive(FluxFlowMapVLMSampler):
         Returns the clone's state at t_seg_end. Stochasticity comes
         entirely from ε in the renoising step; the flow-map call itself
         is deterministic given input."""
-        eps = torch.randn_like(x_anchor_seg_start)
+        # Seeded from the master seed and the child's position, so a
+        # brood replays regardless of what else the process drew first.
+        eps = spawn_legacy.child_noise(x_anchor_seg_start, master_seed,
+                                       stage, child_index)
         # boundary state upward; "lookahead" rebuilds the parent's clean
         # endpoint estimate and re-noises THAT to FLUXFM_LOOKAHEAD_TAU
         # (SDEdit on the predicted image — composition-preserving).
@@ -335,21 +341,17 @@ class FluxFMWDMInteractive(FluxFlowMapVLMSampler):
             # map call from t~1 to the segment end is a 1-NFE generation
             # while the parent gets 28 steps; lookahead_steps never
             # reaches this path. Chain N jumps.
-            _ns = max(1, int(os.environ.get("FLUXFM_CLONE_STEPS", "4")))
+            _ns = spawn_legacy.clone_steps()
             if _ns > 1:
-                _x, _t = x_RN, t_RN
-                for _i in range(_ns):
-                    _tn = t_RN + (t_seg_end - t_RN) * ((_i + 1) / _ns)
-                    _v = self.predict_vector(
+                return spawn_legacy.descend_chain(
+                    x_RN, t_RN, t_seg_end, _ns,
+                    lambda _x, _t, _tn: self.predict_vector(
                         _x, _t,
                         prompt_embeds=prompt_embeds[:1],
                         pooled_prompt_embeds=pooled_prompt_embeds[:1],
                         guidance_scale=guidance_scale,
                         t_next=_tn,
-                    )
-                    _x = _x + (_tn - _t) * _v
-                    _t = _tn
-                return _x
+                    ))
             v = self.predict_vector(
                 x_RN, t_RN,
                 prompt_embeds=prompt_embeds[:1],
@@ -863,6 +865,8 @@ class FluxFMWDMInteractive(FluxFlowMapVLMSampler):
                                     sigma_seg_start, sigma_seg_end, _t_RN_c,
                                     _pe_c, _ppe_c,
                                     _gs_c,
+                                    master_seed=seed, stage=k,
+                                    child_index=int(idx),
                                 )
                                 X_all[idx:idx+1] = x_end
                                 wdm_clone_done[idx] = True
