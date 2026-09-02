@@ -166,7 +166,9 @@ class FluxFMWDMInteractive(FluxFlowMapVLMSampler):
 
     # ----------------------------------------------------- GLASS bridge --
     def _glass_init_flux(self, X_bar: torch.Tensor, sigma_start: float,
-                          sigma_end: float, rho: float) -> Tuple[torch.Tensor, dict]:
+                          sigma_end: float, rho: float,
+                          master_seed=None, stage: int = 0,
+                          indices=None) -> Tuple[torch.Tensor, dict]:
         """GLASS stochastic init in FLUX time (σ ≡ t, 1=noise → 0=clean).
         Identical formula to the FluxTTInteractive version in
         flux_fmtt_interactive_flowmap.py — kept local so this file is
@@ -187,7 +189,14 @@ class FluxFMWDMInteractive(FluxFlowMapVLMSampler):
         bar_sigma = math.sqrt(max(sigma_end ** 2 * (1.0 - rho ** 2), 0.0))
         bar_sigma_0 = 1.0
 
-        eps = torch.randn_like(X_bar)
+        if master_seed is None:
+            eps = torch.randn_like(X_bar)
+        else:
+            rows = indices if indices is not None else range(X_bar.shape[0])
+            eps = torch.cat([
+                spawn_legacy.child_noise(X_bar[r:r + 1], master_seed,
+                                         stage, int(i))
+                for r, i in enumerate(rows)], 0)
         X_inner = bar_gamma * X_bar + bar_sigma_0 * eps
 
         gp = dict(
@@ -364,8 +373,10 @@ class FluxFMWDMInteractive(FluxFlowMapVLMSampler):
             return x_RN + (t_seg_end - t_RN) * v
         # Rare: rejoin level is noisier than the local band — exact
         # forward renoise up to it (no extra NFE).
-        return _renoise_to_more_noise(x_RN, t_RN, t_seg_end,
-                                      torch.randn_like(x_RN))
+        return _renoise_to_more_noise(
+            x_RN, t_RN, t_seg_end,
+            spawn_legacy.child_noise(x_RN, master_seed, stage + 1000,
+                                     child_index))
 
     # ------------------------------------------------- predict_velocity shim --
     def predict_velocity(self, z: torch.Tensor, t_cur: float,
@@ -754,7 +765,9 @@ class FluxFMWDMInteractive(FluxFlowMapVLMSampler):
                     elif clone_mode == "glass":
                         clone_inner, gp = self._glass_init_flux(
                             parent_states, sigma_seg_start,
-                            sigma_seg_end, rho)
+                            sigma_seg_end, rho,
+                            master_seed=seed, stage=k,
+                            indices=[int(i) for i in clone_indices])
                         X_all[clone_indices] = clone_inner
                         glass_params = gp
                         glass_params["seg_start_step"] = k
