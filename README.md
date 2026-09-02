@@ -1,8 +1,9 @@
 # LTNT
 
-LTNT is a creative AI image tool for intuitively exploring the latent space of
-flow-matching and diffusion image models. It gives you a fast loop where you
-navigate, branch, and cluster your way to images you love.
+LTNT is a creative AI image tool for interactively exploring a model's latent
+space by generating variations, selecting what you like, and iteratively
+refining the results according to your preferences, guiding the search toward
+images you love.
 
 Enter a prompt and LTNT generates a whole population of images, lays them out
 so visually similar ones sit near each other, and lets you pick the ones worth
