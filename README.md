@@ -1,9 +1,8 @@
 # LTNT
 
-LTNT ("latent") is a creative AI image tool for intuitively exploring the
-latent space of flow-matching and diffusion image models. It gives you a fast
-loop where you navigate, branch, and cluster the latent manifold to find images
-you love.
+LTNT is a creative AI image tool for intuitively exploring the latent space of
+flow-matching and diffusion image models. It gives you a fast loop where you
+navigate, branch, and cluster the latent manifold to find images you love.
 
 Enter a prompt and LTNT generates a whole population of images, lays them out
 so visually similar ones sit near each other, and lets you pick the ones worth
@@ -11,7 +10,7 @@ developing. Each pick generates new variations that stay close to it while
 resolving differently. A few rounds in, the spread narrows as your taste
 sharpens.
 
-## The loop
+## Workflow
 
 1. **Generate.** A prompt gives you a canvas of candidates covering different
    readings of it.
@@ -23,10 +22,15 @@ sharpens.
 4. **Refine.** Each round generates variations closer to your picks, so the
    spread narrows as your taste sharpens.
 
-## Setup
+## Requirements
 
-An NVIDIA GPU with at least 40 GB of memory, a CUDA 12.x driver, Python 3.10 or
-newer, and about 40 GB of disk.
+- NVIDIA GPU with at least 40 GB of memory
+- CUDA 12.x driver
+- Python 3.10 or newer
+- 40 GB of free disk space
+- A Hugging Face account with access to FLUX.1-dev
+
+## Installation
 
 ```bash
 git clone https://github.com/jrrhuang/ltnt.git
@@ -37,22 +41,23 @@ huggingface-cli login
 bash download_models.sh
 ```
 
-FLUX.1-dev is gated, so accept the license at
+FLUX.1-dev is gated. Accept the license at
 https://huggingface.co/black-forest-labs/FLUX.1-dev before downloading.
 `download_models.sh` fetches the flow-map LoRA, FLUX.1-dev, and DINOv2 into
 `models/`. It skips anything already present, so an interrupted download
 resumes by running it again.
 
-## Run
+## Usage
 
 ```bash
 bash run.sh
 ```
 
-Open http://localhost:8001, type a prompt, and press GENERATE. The first prompt
-loads the model and takes a few minutes. After that a round takes seconds.
+Open http://localhost:8001, enter a prompt, and press GENERATE. The first
+prompt loads the model and takes a few minutes. Subsequent rounds take seconds.
 
-Running on a remote GPU, forward the port and open the same address locally:
+When the server runs on a remote machine, forward the port and open the same
+address locally.
 
 ```bash
 ssh -N -L 8001:localhost:8001 user@host
@@ -88,7 +93,7 @@ Times are for three variations on one L40S. LTNT runs on self-consistent
 flow-matching models. Distilled few-step models break the assumption the
 variation step relies on.
 
-## Settings
+## Configuration
 
 | Variable | Default | Effect |
 |---|---|---|
@@ -98,7 +103,7 @@ variation step relies on.
 | `LTNT_WITH_KREA` | `0` | Fetch Krea-2 during download. |
 | `FLUXFM_CLONE_STEPS` | `4` | Flow-map jumps per variation. Raise for more detail. |
 
-## Rented GPU
+## Deployment
 
 TBD.
 
