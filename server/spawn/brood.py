@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import Callable, List, Optional, Sequence
 
 from .base import Conditioning
+from .schedule import with_distance
 
 
 @dataclass
@@ -37,18 +38,22 @@ class ChildPlan:
 
 def plan_brood(n_children: int, strategy, base_cond: Conditioning,
                pool: Optional[ReadingPool] = None,
-               augmented: int = 0) -> List[ChildPlan]:
-    """Assign strategy and conditioning to each child.
+               augmented: int = 0,
+               distances: Optional[Sequence[float]] = None
+               ) -> List[ChildPlan]:
+    """Assign strategy, distance and conditioning to each child.
 
     The first `augmented` children draw from the pool; the rest keep the
-    base conditioning. augmented=0 gives a pure-renoise brood,
-    augmented=n_children gives an all-variant brood.
+    base conditioning. `distances` gives each child its own spawn
+    distance, so one brood spans a range rather than repeating a point.
     """
     plans = []
     for i in range(n_children):
         use_pool = pool is not None and i < augmented
         cond = pool.conditioning(i) if use_pool else base_cond
-        plans.append(ChildPlan(index=i, strategy=strategy, cond=cond))
+        child = (with_distance(strategy, distances[i])
+                 if distances else strategy)
+        plans.append(ChildPlan(index=i, strategy=child, cond=cond))
     return plans
 
 

@@ -1,4 +1,14 @@
-"""Spawn strategies. Each maps a parent latent to one child latent."""
+"""Spawn strategies. Each maps a parent latent to one child latent.
+
+Every strategy takes the same canonical parameter, `distance`:
+
+    0.0  the child is the parent
+    1.0  the child is an independent sample from the prompt
+
+Each strategy translates that into whatever its own mathematics uses.
+A caller never sets a native parameter, so a schedule can move one
+number across methods that disagree about what their own knobs mean.
+"""
 import math
 from dataclasses import dataclass
 
@@ -11,16 +21,15 @@ from .base import SpawnContext, descend, endpoint, renoise
 class Renoise:
     """Renoise the parent state upward, then integrate down.
 
-    rho is the fraction of the remaining distance to pure noise:
-    t_spawn = t_parent + rho * (1 - t_parent). rho near 0 keeps the
-    parent; rho near 1 approaches an independent sample.
+    Native form: the spawn level is the given fraction of the remaining
+    span to pure noise, t_spawn = t_parent + distance * (1 - t_parent).
     """
-    rho: float = 0.95
+    distance: float = 0.95
     steps: int = 4
 
     def __call__(self, parent: torch.Tensor,
                  ctx: SpawnContext) -> torch.Tensor:
-        t_spawn = ctx.t_parent + self.rho * (1.0 - ctx.t_parent)
+        t_spawn = ctx.t_parent + self.distance * (1.0 - ctx.t_parent)
         noise = torch.randn(parent.shape, generator=ctx.generator,
                             device=parent.device, dtype=parent.dtype)
         x = renoise(parent, ctx.t_parent, t_spawn, noise)
@@ -31,10 +40,10 @@ class Renoise:
 class Lookahead:
     """Renoise the parent's clean-image estimate, then integrate down.
 
-    Preserves composition more strongly than Renoise at equal noise
-    level, since the estimate is re-noised rather than the latent.
+    Native form: the estimate is re-noised to `distance` directly, which
+    preserves composition more strongly than Renoise at the same level.
     """
-    tau: float = 0.75
+    distance: float = 0.75
     steps: int = 4
 
     def __call__(self, parent: torch.Tensor,
@@ -42,8 +51,8 @@ class Lookahead:
         x0 = endpoint(parent, ctx.t_parent, ctx)
         noise = torch.randn(parent.shape, generator=ctx.generator,
                             device=parent.device, dtype=parent.dtype)
-        x = (1.0 - self.tau) * x0 + self.tau * noise
-        return descend(x, self.tau, ctx.t_end, self.steps, ctx)
+        x = (1.0 - self.distance) * x0 + self.distance * noise
+        return descend(x, self.distance, ctx.t_end, self.steps, ctx)
 
 
 @dataclass
@@ -53,11 +62,21 @@ class GlassBridge:
     The bridge target must carry noise: at t_end = 0 both the parent
     coupling and the bridge width vanish, so t_end is raised to
     sigma_floor and the remainder is integrated by `descend`.
+
+    Native form: the bridge's own coupling parameter runs the OTHER way
+    (higher coupling means a child closer to its parent), so it is
+    1 - distance. Writing a distance straight into it reverses the
+    schedule.
     """
-    rho: float = 0.4
+    distance: float = 0.6
     inner_steps: int = 8
     sigma_floor: float = 0.35
     steps: int = 4
+
+    @property
+    def coupling(self) -> float:
+        """The bridge's native parameter: 1 at the parent, 0 independent."""
+        return 1.0 - self.distance
 
     def __call__(self, parent: torch.Tensor,
                  ctx: SpawnContext) -> torch.Tensor:
@@ -72,13 +91,14 @@ class GlassBridge:
         return descend(x, t_bridge, ctx.t_end, self.steps, ctx)
 
     def _params(self, t_start: float, t_end: float) -> dict:
-        gamma = self.rho * t_end / max(t_start, 1e-8)
+        rho = self.coupling
+        gamma = rho * t_end / max(t_start, 1e-8)
         return dict(
             alpha_start=1.0 - t_start,
             sigma_start=t_start,
             gamma=gamma,
             alpha=(1.0 - t_end) - gamma * (1.0 - t_start),
-            sigma=math.sqrt(max(t_end ** 2 * (1.0 - self.rho ** 2), 0.0)),
+            sigma=math.sqrt(max(t_end ** 2 * (1.0 - rho ** 2), 0.0)),
             sigma_0=1.0,
         )
 

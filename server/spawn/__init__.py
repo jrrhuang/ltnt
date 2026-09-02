@@ -11,6 +11,7 @@
 from .base import (Conditioning, FlowModel, SpawnContext, SpawnStrategy,
                    descend, endpoint, renoise)
 from .brood import ChildPlan, ReadingPool, mixed_brood, plan_brood
+from .schedule import Narrowing, with_distance
 from .strategies import STRATEGIES, GlassBridge, Lookahead, Renoise, make
 
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     "renoise", "descend", "endpoint",
     "Renoise", "Lookahead", "GlassBridge", "STRATEGIES", "make",
     "ChildPlan", "ReadingPool", "plan_brood", "mixed_brood",
+    "Narrowing", "with_distance",
 ]

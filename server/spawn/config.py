@@ -2,6 +2,7 @@
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
 
+from .schedule import Narrowing
 from .strategies import make
 
 # Measured diversity of a brood, 1 - mean pairwise DINO similarity, as a
@@ -19,14 +20,17 @@ class SpawnConfig:
     the reading pool.
     """
     strategy: str = "renoise"
-    params: Dict[str, Any] = field(default_factory=lambda: {"rho": 0.95,
-                                                            "steps": 4})
+    params: Dict[str, Any] = field(default_factory=lambda: {"steps": 4})
+    narrowing: Narrowing = field(default_factory=Narrowing)
     augmented: int = 0
     diversity_high: float = 0.24
     diversity_low: float = 0.12
 
-    def build(self):
-        return make(self.strategy, **self.params)
+    def build(self, stage: int = 1):
+        """The strategy for a stage, at that stage's spawn distance."""
+        params = dict(self.params)
+        params["distance"] = self.narrowing.distance(stage)
+        return make(self.strategy, **params)
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -40,10 +44,20 @@ class SpawnConfig:
             cfg.params = dict(spawn.get("params") or {})
         elif req.get("clone_mode") == "glass":
             cfg.strategy = "glass"
-            cfg.params = {"rho": float(req.get("rho") or 0.4)}
+            cfg.params = {}
         else:
             cfg.strategy = "renoise"
-            cfg.params = {"rho": float(req.get("rho") or 0.95), "steps": 4}
+            cfg.params = {"steps": 4}
+        # A request-level distance sets where the FIRST brood starts; the
+        # schedule narrows from there.
+        if req.get("rho") is not None:
+            start = float(req["rho"])
+            base = cfg.narrowing
+            cfg.narrowing = Narrowing(start=start,
+                                      end=min(base.end, start),
+                                      stages=base.stages,
+                                      curve=base.curve,
+                                      spread=base.spread)
         cfg.augmented = int(spawn.get("augmented", 0))
         return cfg
 
