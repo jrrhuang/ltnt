@@ -267,15 +267,14 @@ export default function App() {
     try { localStorage.setItem('ltnt.tour_mode', on ? '1' : '0') } catch {}
   }
 
-  // THEME — the regular-usage session UI is light/dark themeable and DEFAULTS
-  // TO DARK to match the flagship create-map aesthetic (no brand whiplash).
-  // Persisted in localStorage; applied to <html data-theme> so the semantic CSS
-  // vars in index.css re-skin the whole session flow on a single attribute swap.
+  // THEME. Light is the default. Persisted in localStorage and applied to
+  // <html data-theme>, so the semantic vars in index.css re-skin the whole
+  // session flow on a single attribute swap.
   const [theme, setTheme] = useState(() => {
     try {
       const v = localStorage.getItem('ltnt.theme')
-      return v === 'light' || v === 'dark' ? v : 'dark'  // default DARK
-    } catch { return 'dark' }
+      return v === 'light' || v === 'dark' ? v : 'light'
+    } catch { return 'light' }
   })
   useEffect(() => {
     try { document.documentElement.setAttribute('data-theme', theme) } catch {}

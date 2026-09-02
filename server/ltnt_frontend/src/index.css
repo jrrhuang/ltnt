@@ -15,7 +15,7 @@
    attribute swap re-skins the whole session UI.
    ============================================================================ */
 :root, :root[data-theme="dark"] {
-  /* DARK (default) — flagship palette */
+  /* DARK. Opt-in. */
   --bg: #0b0d10;             /* app / canvas background (near-black) */
   --panel: #14171c;          /* sidebars, cards, pills */
   --panel-2: #1b1f26;        /* nested panels / hover */
@@ -38,7 +38,7 @@
 }
 
 :root[data-theme="light"] {
-  /* LIGHT — the original generic layout, kept as an opt-in */
+  /* LIGHT. The default. */
   --bg: #e8e8e8;
   --panel: #ffffff;
   --panel-2: #f8f8f8;

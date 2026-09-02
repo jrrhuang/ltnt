@@ -1,116 +1,79 @@
-# Latent Navigator (LTNT)
+# LTNT
 
-An interactive image-generation tool that lets users explore a model's latent
-space by generating variations, selecting what they like, and iteratively
-refining the results according to their preferences.
+LTNT ("latent") is a creative AI image tool for intuitive latent-space
+exploration of flow-matching and diffusion image models. It gives you a fast
+loop where you navigate, branch, and cluster the latent manifold to find images
+you love.
 
-A generative model encodes many possible interpretations of a prompt, differing
-in composition, style, lighting, and semantic emphasis. LTNT lays that
-population out on a map where visually similar images sit near each other.
-Repeated selection concentrates it on the directions you keep choosing.
+Enter a prompt and LTNT generates a whole population of images, lays them out
+so visually similar ones sit near each other, and lets you pick the ones worth
+developing. Each pick spawns children that stay connected to their parent while
+resolving differently. A few rounds grow a tree, and the spread narrows as your
+taste sharpens.
 
-## The loop
+## Setup
 
-1. **Generate.** Enter a prompt. The system runs many particles in parallel
-   through the diffusion trajectory and previews each one at the first
-   checkpoint.
-2. **Arrange.** Previews are embedded with DINOv2 and projected into two
-   dimensions, so visually similar previews appear nearby.
-3. **Select.** Click the images worth developing. Unselected images stay on the
-   canvas as desaturated thumbnails.
-4. **Breed.** Each selection spawns children that remain connected to it and
-   differ from each other. Children are placed near their parent.
-5. **Repeat.** Two or three rounds grow a tree of variations rooted in the
-   first population.
-
-Branching happens at intermediate states. Part of the image is still
-undetermined at that point, so children can resolve differently while staying
-conditioned on the same parent.
-
-## Requirements
-
-- NVIDIA GPU with at least 40 GB of memory
-- CUDA 12.x driver
-- Python 3.10 or newer
-- ~40 GB of disk for model weights
-- A Hugging Face account with access to `black-forest-labs/FLUX.1-dev`
-
-## Run on your own GPU
-
-Accept the FLUX.1-dev license at
-https://huggingface.co/black-forest-labs/FLUX.1-dev, then create a read token
-at https://huggingface.co/settings/tokens.
+An NVIDIA GPU with at least 40 GB of memory, a CUDA 12.x driver, Python 3.10 or
+newer, and about 40 GB of disk.
 
 ```bash
 git clone https://github.com/jrrhuang/ltnt.git
 cd ltnt
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-huggingface-cli login          # or: export HF_TOKEN=<your token>
-bash download_models.sh        # ~35 GB into models/, re-runnable
+huggingface-cli login
+bash download_models.sh
+```
+
+FLUX.1-dev is gated, so accept the license at
+https://huggingface.co/black-forest-labs/FLUX.1-dev before downloading.
+`download_models.sh` fetches the flow-map LoRA, FLUX.1-dev, and DINOv2 into
+`models/`. It skips anything already present, so an interrupted download
+resumes by running it again.
+
+## Run
+
+```bash
 bash run.sh
 ```
 
-Open http://localhost:8001, type a prompt, and press GENERATE.
+Open http://localhost:8001, type a prompt, and press GENERATE. The first prompt
+loads the model and takes a few minutes. After that a round takes seconds.
 
-`download_models.sh` fetches the flow-map LoRA, FLUX.1-dev, and DINOv2.
-It skips anything already present, so an interrupted download resumes by
-running it again. Set `LTNT_MODELS` to place weights elsewhere.
-
-To serve on a different port or interface:
-
-```bash
-PORT=9000 LTNT_HOST=0.0.0.0 bash run.sh
-```
-
-On a remote machine, keep the default loopback binding and forward the port:
+Running on a remote GPU, forward the port and open the same address locally:
 
 ```bash
 ssh -N -L 8001:localhost:8001 user@host
 ```
 
-## Run on a rented GPU
-
-TBD.
-
 ## Models
 
 | Model | Key | Notes |
 |---|---|---|
-| FLUX.1-dev with the flow-map LoRA | `fluxfm` | The default. A round of children takes seconds. |
-| FLUX.1-dev | `flux` | The same backbone without the flow map. Slower per round. |
-| Krea-2 | `krea2` | Higher quality and slower. Separately gated, and fetched only when `LTNT_WITH_KREA=1`. |
+| FLUX.1-dev with the flow-map LoRA | `fluxfm` | The default. 13 s per round. |
+| FLUX.1-dev | `flux` | The same backbone without the flow map. 25 s per round. |
+| Krea-2 | `krea2` | Higher quality, 83 s per round. Gated, and fetched only when `LTNT_WITH_KREA=1`. |
 
-Measured on one L40S, generating a population of four and then a brood of
-three: 13 s per brood with the flow map, 25 s with FLUX, 83 s with Krea-2.
+Times are for a brood of three on one L40S.
 
-Set `LTNT_MODELS` to place weights outside the repository.
+## Settings
 
-## Spawning
-
-`server/spawn/` holds the strategies that turn a parent into children. Each is
-a callable mapping a parent latent to a child latent, selected by name:
-
-| Strategy | Mechanism | Parameters |
+| Variable | Default | Effect |
 |---|---|---|
-| `renoise` | Renoise the parent latent to `t + distance(1-t)`, then integrate down. | `distance`, `steps` |
-| `lookahead` | Renoise the parent's clean-image estimate, then integrate down. | `distance`, `steps` |
-| `glass` | GLASS bridge to a noise floor, then integrate down. | `distance`, `inner_steps`, `sigma_floor` |
+| `PORT` | `8001` | Port the server listens on. |
+| `LTNT_HOST` | `127.0.0.1` | Interface to bind. Set `0.0.0.0` in a container. |
+| `LTNT_MODELS` | `./models` | Where weights are stored. |
+| `LTNT_WITH_KREA` | `0` | Fetch Krea-2 during download. |
+| `FLUXFM_CLONE_STEPS` | `4` | Flow-map jumps in a child's descent. Raise for more detail per child. |
 
-`distance` sets how far a child travels from its parent. A value near 0 keeps
-the parent's structure and a value near 1 approaches an independent sample.
-Prompt variation composes with any strategy through `plan_brood`, which assigns
-per-child conditioning without touching the spawn mechanism. See
-`server/spawn/README.md`.
+How children come from a parent lives in `server/spawn/`. A spawn method is
+picked by name from a registry, and `distance` controls how far a child travels
+from its parent, from 0 at the parent to 1 at an independent sample. A
+narrowing schedule lowers it across rounds.
 
-## Tests
+## Rented GPU
 
-```bash
-pip install pytest
-python -m pytest server/spawn/tests -q
-```
-
-The suite runs on CPU and needs no model weights.
+TBD.
 
 ## License
 
