@@ -2937,5 +2937,31 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--port", type=int, default=8001)
     srv_args = p.parse_args()
-    uvicorn.run(app, host=os.environ.get("LTNT_HOST", "127.0.0.1"),
-                port=srv_args.port, reload=False)
+    host = os.environ.get("LTNT_HOST", "127.0.0.1")
+    url = f"http://localhost:{srv_args.port}"
+    lines = [
+        "LTNT",
+        "",
+        f"Open  {url}",
+        "",
+        "Type a prompt and press GENERATE. Pick the images you like,",
+        "then breed them into a new generation.",
+        "",
+        "The model loads on the first prompt, which takes a few",
+        "minutes. Later prompts are seconds.",
+        "",
+        "Ctrl-C to stop.",
+    ]
+    width = max(len(ln) for ln in lines) + 4
+    print("\n┌" + "─" * width + "┐")
+    for ln in lines:
+        print("│  " + ln.ljust(width - 2) + "│")
+    print("└" + "─" * width + "┘\n", flush=True)
+    if host == "127.0.0.1":
+        print(f"Serving on {host} only. On a remote machine, forward the "
+              f"port from your laptop:\n"
+              f"    ssh -N -L {srv_args.port}:localhost:{srv_args.port} "
+              f"<user>@<host>\n"
+              f"then open {url} there. To bind all interfaces instead, set "
+              f"LTNT_HOST=0.0.0.0.\n", flush=True)
+    uvicorn.run(app, host=host, port=srv_args.port, reload=False)

@@ -46,13 +46,16 @@ git clone https://github.com/jrrhuang/ltnt.git
 cd ltnt
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-export HF_TOKEN=<your token>
+huggingface-cli login          # or: export HF_TOKEN=<your token>
+bash download_models.sh        # ~35 GB into models/, re-runnable
 bash run.sh
 ```
 
-The first run downloads FLUX.1-dev and the flow-map LoRA into `models/`.
-Subsequent runs start from that cache. Open http://localhost:8001, type a
-prompt, and press GENERATE.
+Open http://localhost:8001, type a prompt, and press GENERATE.
+
+`download_models.sh` fetches the flow-map LoRA, FLUX.1-dev, and DINOv2.
+It skips anything already present, so an interrupted download resumes by
+running it again. Set `LTNT_MODELS` to place weights elsewhere.
 
 To serve on a different port or interface:
 

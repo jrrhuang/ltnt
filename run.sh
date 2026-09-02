@@ -1,18 +1,22 @@
 #!/usr/bin/env bash
-# LTNT single-machine launcher. First boot downloads models to $LTNT_MODELS
-# (default ./models). Requires HF_TOKEN with FLUX.1-dev access accepted.
+# Start LTNT on http://localhost:$PORT (default 8001).
+# Weights come from `bash download_models.sh`.
 set -euo pipefail
-cd "$(dirname "$0")/server"
-export LTNT_MODELS="${LTNT_MODELS:-$(pwd)/../models}"
-export HF_HOME="$LTNT_MODELS"
-export HUGGINGFACE_HUB_CACHE="$HF_HOME/hub"
-mkdir -p "$HUGGINGFACE_HUB_CACHE"
-# Flow-map LoRA (public):
-LORA_DIR="$LTNT_MODELS/flux-flowmap-lora-512"
+
+REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
+MODEL_ROOT="${LTNT_MODELS:-$REPO_ROOT/models}"
+LORA_DIR="$MODEL_ROOT/flux-flowmap-lora-512"
+
 if [ ! -f "$LORA_DIR/pytorch_lora_weights.safetensors" ]; then
-  mkdir -p "$LORA_DIR"
-  curl -L -o "$LORA_DIR/pytorch_lora_weights.safetensors" \
-    "https://huggingface.co/gabeguofanclub/flux-1-dev-flowmap-lsd/resolve/main/01-12-26/runs/res_512_steps_50k_rank_64_lr_1e-4/checkpoint-43000/pytorch_lora_weights.safetensors"
+    echo "Flow-map LoRA not found at $LORA_DIR."
+    echo "Run:  bash download_models.sh"
+    exit 1
 fi
+
+export LTNT_MODELS="$MODEL_ROOT"
+export HF_HOME="${HF_HOME:-$MODEL_ROOT}"
+export HUGGINGFACE_HUB_CACHE="${HUGGINGFACE_HUB_CACHE:-$HF_HOME/hub}"
 export FLUXFM_LORA_PATH="$LORA_DIR"
+
+cd "$REPO_ROOT/server"
 exec python server.py --port "${PORT:-8001}"

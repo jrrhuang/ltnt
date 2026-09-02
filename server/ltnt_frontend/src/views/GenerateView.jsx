@@ -85,7 +85,7 @@ export default function GenerateView({ onImages, onExplore, onCreateMap, onBoard
   }, [])
 
   // Generation parameters
-  const [model, setModel] = useState('krea2')  // 'flux' | 'sd35' | 'sana' | 'fluxfm' | 'krea2'
+  const [model, setModel] = useState('fluxfm')  // 'flux' | 'sd35' | 'sana' | 'fluxfm' | 'krea2'
   // Only relevant when model === 'fluxfm'. 'glass' = exact GLASS bridge
   // (M_inner NFE per clone). 'flow_map' = Weighted-Diamond-Maps-style
   // 1-NFE amortized clone (biased but ~9× faster).
