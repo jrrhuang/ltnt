@@ -123,9 +123,8 @@ export default function GenerateView({ onImages, onExplore, onCreateMap, onBoard
   // two controls stay in sync — no duplicate state. The bar cycles through the
   // three headline backends; Settings still exposes the full set (sd35/fluxfm).
   const BAR_MODELS = [
-    { key: 'flux',  label: 'FLUX'   },
     { key: 'fluxfm', label: 'FLUX-FM' },
-    { key: 'sd35',  label: 'SD3.5'  },
+    { key: 'flux',  label: 'FLUX'   },
     { key: 'krea2', label: 'KREA-2' },
   ]
   // Live availability from the backend so the picker never offers a broken
