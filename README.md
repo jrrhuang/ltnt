@@ -67,10 +67,6 @@ only when `LTNT_WITH_KREA=1`.
 LTNT runs on self-consistent flow-matching models. Distilled few-step models
 are unsupported.
 
-## Deployment
-
-TBD.
-
 ## License
 
 MIT.
