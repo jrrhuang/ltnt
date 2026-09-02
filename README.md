@@ -1,13 +1,16 @@
-# LTNT
+# Latent Navigator (LTNT)
 
-A latent-space navigator for image models. LTNT generates a population of
-images from one prompt, arranges them so visually similar images sit near each
-other, and grows new variations from the ones you select.
+LTNT is a tool for navigating the range of images a generative model can
+produce for one prompt. It generates a population instead of a single sample,
+arranges the population so visually similar images sit near each other, and
+grows new variations from the images you select.
 
 A generative model encodes many possible interpretations of a prompt. They
 differ in composition, style, lighting, and semantic emphasis. A prompt box
-returns one sample at a time and gives no view of the rest. LTNT shows the
-population, and your selections decide which regions are developed further.
+returns one of them at a time and gives no view of the others. LTNT shows the
+population and lets your selections decide which regions are developed further.
+Repeated selection concentrates the population on the directions you keep
+choosing.
 
 ## The loop
 
