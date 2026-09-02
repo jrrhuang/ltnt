@@ -1,31 +1,31 @@
 # LTNT
 
-A latent-space navigator for image models. Instead of one image per prompt,
-LTNT generates a population, shows you how its members relate, and lets you
-breed the ones you like into further generations.
+A latent-space navigator for image models. LTNT generates a population of
+images from one prompt, arranges them so visually similar images sit near each
+other, and grows new variations from the ones you select.
 
-A text-to-image model does not hold a single picture for a prompt. It holds a
-space of interpretations — compositions, palettes, framings, readings of the
-same words — and a prompt box samples that space blindly. LTNT makes the space
-navigable: generate a spread, select what interests you, and spawn children of
-your selections. Repeat, and the tree that grows is the record of your choices.
+A generative model encodes many possible interpretations of a prompt. They
+differ in composition, style, lighting, and semantic emphasis. A prompt box
+returns one sample at a time and gives no view of the rest. LTNT shows the
+population, and your selections decide which regions are developed further.
 
 ## The loop
 
-1. **Generate.** Enter a prompt. The system runs a spread of generations in
-   parallel and previews each one partway through the diffusion trajectory.
-2. **Arrange.** Previews are embedded with DINOv2 and placed on a canvas where
-   proximity means visual kinship. Distinct readings of the prompt form
-   distinct clusters.
+1. **Generate.** Enter a prompt. The system runs many particles in parallel
+   through the diffusion trajectory and previews each one at the first
+   checkpoint.
+2. **Arrange.** Previews are embedded with DINOv2 and projected into two
+   dimensions, so visually similar previews appear nearby.
 3. **Select.** Click the images worth developing. Unselected images stay on the
-   canvas, desaturated.
-4. **Breed.** Each selection spawns children that share its direction and
-   differ from each other. Children are placed around their parent.
-5. **Repeat.** Two or three rounds produce a tree rooted in the first spread.
+   canvas as desaturated thumbnails.
+4. **Breed.** Each selection spawns children that remain connected to it and
+   differ from each other. Children are placed near their parent.
+5. **Repeat.** Two or three rounds grow a tree of variations rooted in the
+   first population.
 
-Branching happens at intermediate states, not finished images. A half-resolved
-image is still undecided, so its children are genuine alternatives rather than
-edits of a settled picture.
+Branching happens at intermediate states. Part of the image is still
+undetermined at that point, so children can resolve differently while staying
+conditioned on the same parent.
 
 ## Requirements
 
@@ -75,10 +75,14 @@ TBD.
 
 ## Models
 
-| Model | Role |
-|---|---|
-| FLUX.1-dev + flow-map LoRA | Fast path. Seconds per generation. Downloaded automatically. |
-| Krea-2 | Quality path. Requires separate access to the Krea weights. |
+| Model | Key | Notes |
+|---|---|---|
+| FLUX.1-dev with the flow-map LoRA | `fluxfm` | The default. A round of children takes seconds. |
+| FLUX.1-dev | `flux` | The same backbone without the flow map. Slower per round. |
+| Krea-2 | `krea2` | Higher quality and slower. Separately gated, and fetched only when `LTNT_WITH_KREA=1`. |
+
+Measured on one L40S, generating a population of four and then a brood of
+three: 13 s per brood with the flow map, 25 s with FLUX, 83 s with Krea-2.
 
 Set `LTNT_MODELS` to place weights outside the repository.
 
@@ -89,14 +93,15 @@ a callable mapping a parent latent to a child latent, selected by name:
 
 | Strategy | Mechanism | Parameters |
 |---|---|---|
-| `renoise` | Renoise the parent latent to `t + rho(1-t)`, then integrate down. | `rho`, `steps` |
-| `lookahead` | Renoise the parent's clean-image estimate, then integrate down. | `tau`, `steps` |
-| `glass` | GLASS bridge to a noise floor, then integrate down. | `rho`, `inner_steps`, `sigma_floor` |
+| `renoise` | Renoise the parent latent to `t + distance(1-t)`, then integrate down. | `distance`, `steps` |
+| `lookahead` | Renoise the parent's clean-image estimate, then integrate down. | `distance`, `steps` |
+| `glass` | GLASS bridge to a noise floor, then integrate down. | `distance`, `inner_steps`, `sigma_floor` |
 
-`rho` sets how far a child travels from its parent: near 0 keeps the parent's
-structure, near 1 approaches an independent sample. Prompt variation composes
-with any strategy through `plan_brood`, which assigns per-child conditioning
-without touching the spawn mechanism. See `server/spawn/README.md`.
+`distance` sets how far a child travels from its parent. A value near 0 keeps
+the parent's structure and a value near 1 approaches an independent sample.
+Prompt variation composes with any strategy through `plan_brood`, which assigns
+per-child conditioning without touching the spawn mechanism. See
+`server/spawn/README.md`.
 
 ## Tests
 
