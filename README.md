@@ -5,22 +5,12 @@ space by generating variations, selecting what you like, and iteratively
 refining the results according to your preferences, guiding the search toward
 images you love.
 
-Enter a prompt and LTNT generates a whole population of images, lays them out
-so visually similar ones sit near each other, and lets you pick the ones worth
-developing. Each pick generates new variations that stay close to it while
-resolving differently. A few rounds in, the spread narrows as your taste
-sharpens.
-
-## Workflow
-
-1. **Generate.** A prompt fills the canvas with candidates.
-2. **Pick + "make more like these."** LTNT generates variations from your
-   selections.
-3. **Explore.** The canvas organizes itself by visual similarity.
-4. **Refine.** Repeat.
-
-Variations branch partway through generation, while the image is still
-unresolved. DINOv2 embeddings decide where images land on the canvas.
+Enter a prompt and LTNT generates a population of images, then arranges them on
+a 2D map so visually similar images appear nearby. Select the images you like
+to generate related variations and continue exploring over multiple rounds.
+Variations branch from intermediate diffusion states and stay connected to the
+image you selected while resolving differently. The spread narrows across
+rounds as your preferences become more specific.
 
 ## Installation
 
@@ -58,8 +48,10 @@ Set `LTNT_MODELS` to store weights outside the repository.
 
 ## Models
 
-LTNT supports FLUX.1-dev and Krea-2, with a faster FLUX option for interactive
-use. The faster option is the default.
+LTNT supports FLUX.1-dev with Gabe Guo's distilled
+[flow-map LoRA](https://huggingface.co/gabeguofanclub/flux-1-dev-flowmap-lsd)
+for fast interaction, plain FLUX.1-dev, and Krea-2. The flow-map model is the
+default.
 
 Krea-2 is gated separately. Set `LTNT_WITH_KREA=1` when running
 `download_models.sh` to download it.
