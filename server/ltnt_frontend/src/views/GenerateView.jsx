@@ -85,7 +85,7 @@ export default function GenerateView({ onImages, onExplore, onCreateMap, onBoard
   }, [])
 
   // Generation parameters
-  const [model, setModel] = useState('fluxfm')  // 'flux' | 'sd35' | 'sana' | 'fluxfm' | 'krea2'
+  const [model, setModel] = useState('fluxfm')  // 'fluxfm' | 'flux' | 'krea2'
   // Only relevant when model === 'fluxfm'. 'glass' = exact GLASS bridge
   // (M_inner NFE per clone). 'flow_map' = Weighted-Diamond-Maps-style
   // 1-NFE amortized clone (biased but ~9× faster).
@@ -121,7 +121,7 @@ export default function GenerateView({ onImages, onExplore, onCreateMap, onBoard
   // Compact model picker surfaced on the GENERATE bar. Shares the same `model`
   // state the generate request reads (and the Settings panel writes), so the
   // two controls stay in sync — no duplicate state. The bar cycles through the
-  // three headline backends; Settings still exposes the full set (sd35/fluxfm).
+  // The models the documented setup installs.
   const BAR_MODELS = [
     { key: 'fluxfm', label: 'FLUX-FM' },
     { key: 'flux',  label: 'FLUX'   },
@@ -150,7 +150,7 @@ export default function GenerateView({ onImages, onExplore, onCreateMap, onBoard
   const isAvail = (k) => availModels === null || availModels.has(k)
   // Friendly label for whatever model is currently selected (covers models that
   // only live in Settings, e.g. SD3.5 / FluxFM, so the bar never shows a blank).
-  const MODEL_LABELS = { flux: 'FLUX', sana: 'SANA', krea2: 'KREA-2', sd35: 'SD3.5', fluxfm: 'FLUXFM' }
+  const MODEL_LABELS = { fluxfm: 'FLUXFM', flux: 'FLUX', krea2: 'KREA-2' }
   function cycleModel() {
     const avail = BAR_MODELS.filter(m => isAvail(m.key))
     const pool = avail.length ? avail : BAR_MODELS
@@ -484,7 +484,7 @@ export default function GenerateView({ onImages, onExplore, onCreateMap, onBoard
 
             <SettingRow label="Model" tooltip="Which image model paints your spread">
               <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '200px' }}>
-                {[['sd35', 'SD3.5'], ['flux', 'FLUX'], ['sana', 'SANA'], ['fluxfm', 'FluxFM'], ['krea2', 'KREA-2 (512)']].map(([val, label]) => (
+                {[['fluxfm', 'FluxFM'], ['flux', 'FLUX'], ['krea2', 'KREA-2']].map(([val, label]) => (
                   <button
                     key={val}
                     onClick={() => setModel(val)}

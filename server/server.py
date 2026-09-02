@@ -1,6 +1,6 @@
 """
 FastAPI backend for latent-explorer.
-Wraps sd35_fmtt.py (generation) and cluster_images.py (UMAP/MDS clustering).
+Wraps the samplers (generation) and cluster_images.py (UMAP/MDS clustering).
 
 Interactive flow:
   1. POST /api/generate       → starts job, returns job_id
@@ -65,7 +65,7 @@ from pydantic import BaseModel
 # divided by the model's expected resident footprint.
 _boot = {"ready": False, "phase": "starting", "detail": "", "fraction": 0.0}
 _EXPECTED_BYTES = {   # approx resident GPU footprint per sampler (bf16)
-    "flux": 33e9, "sana": 9e9, "krea2": 37e9, "sd35": 8e9, "fluxfm": 33e9,
+    "flux": 33e9, "krea2": 37e9, "fluxfm": 33e9,
 }
 
 
@@ -193,7 +193,7 @@ def get_device() -> str:
 
 class GenerateRequest(BaseModel):
     prompt: str
-    model: str = "flux"          # "flux" | "sd35" | "sana" | "fluxfm" | "krea2"
+    model: str = "fluxfm"        # "fluxfm" | "flux" | "krea2"
     n_images: int = 6
     num_steps: int = 28
     num_clones: int = 3
@@ -411,8 +411,6 @@ _resident_model = {"key": None}
 
 _MODEL_REPOS = {
     "flux":  ("FLUX",   "models--black-forest-labs--FLUX.1-dev",  "FLUX_LOCAL_PATH"),
-    "sana":  ("SANA",   "models--Efficient-Large-Model--Sana_1600M_1024px_diffusers", "SANA_LOCAL_PATH"),
-    "sd35":  ("SD3.5",  "models--stabilityai--stable-diffusion-3.5-medium", None),
     "krea2": ("KREA-2", "models--krea--Krea-2-Raw", "KREA_LOCAL_PATH"),
     # flow-map LoRA. Loadable iff the FLUX base is loadable AND the LoRA
     # weights resolve (the symlink into /data, compute-node-only).
@@ -711,10 +709,6 @@ def _boot_worker():
             import traceback
             print(f"[server] WARNING: pre-import failed — first Generate will be slow: {type(_e).__name__}: {_e}")
             traceback.print_exc()
-        try:
-            import sd35_fmtt   # noqa: F401 — optional, only used for model='sd35'
-        except Exception as _e:
-            print(f"[server] (sd35_fmtt not imported up front: {_e})")
 
         # Escape hatch for secondary/test instances sharing a GPU with a
         # resident production server: skip the eager FLUX/Qwen loads.
@@ -1246,7 +1240,7 @@ def _do_generate(job_id: str, req: dict) -> dict:
 
     prompt = req["prompt"]
     model = req.get("model", "flux")
-    _KNOWN_MODELS = {"flux", "sana", "krea2", "fluxfm", "sd35"}
+    _KNOWN_MODELS = {"fluxfm", "flux", "krea2"}
     if model not in _KNOWN_MODELS:
         raise ValueError("Unknown model " + repr(model) + "; expected one of " + str(sorted(_KNOWN_MODELS)))
     n_images = max(1, min(int(req["n_images"]), 24))  # robustness: cap particles (was unbounded -> OOM)
@@ -1282,7 +1276,7 @@ def _do_generate(job_id: str, req: dict) -> dict:
         jobs[job_id]["progress"] = pct
         jobs[job_id]["stage"] = stage
 
-    model_label = "FLUX" if model == "flux" else "SD3.5"
+    model_label = "FLUX"
     set_progress(2, "Starting up...")
     set_progress(5, "Loading image model...")
 
@@ -1406,26 +1400,10 @@ def _do_generate(job_id: str, req: dict) -> dict:
             except Exception as exc:
                 print(f"[image-seed] encode failed ({exc}); normal generation.")
                 init_latent = None
-    elif model == "sana":
-        _free_previous_sampler()   # also drops any warm FLUX
-        from sana_fmtt import SanaInteractive
-        # SPAN MODE needs warm re-prompting (variations arrive mid-stream from
-        # the background augment thread), so keep the Gemma text encoder
-        # resident for span sessions only. Signature-gated for old samplers.
-        import inspect as _inspect
-        _sana_kwargs = dict(prompt=prompt, device=device)
-        if (req.get("span_round1")
-                and "keep_text_encoder" in _inspect.signature(
-                    SanaInteractive.__init__).parameters):
-            _sana_kwargs["keep_text_encoder"] = True
-        sampler = _load_sampler_with_progress(
-            job_id, "Loading the SANA image model (one-time, ~1 min)...",
-            "sana", lambda: SanaInteractive(**_sana_kwargs))
-        _active_sampler = sampler
     elif model == "krea2":
         # Krea-2-Raw is heavy (~37GB resident) and 512-ONLY: 1024 OOMs on L40S.
         # Force the session to 512x512 regardless of what the frontend requested.
-        # Goes through _free_previous_sampler (like sana) so any warm FLUX is
+        # Goes through _free_previous_sampler so any warm FLUX is
         # dropped before this single big model loads.
         #
         # DIVERSITY: krea2 now supports prompt-augmented round-1 diversity
@@ -1633,12 +1611,8 @@ def _do_generate(job_id: str, req: dict) -> dict:
             print(f"[recipe] fluxfm write failed: {_re}")
         _active_sampler = sampler
     else:
-        _free_previous_sampler()
-        from sd35_fmtt import SD35FMTT
-        sampler = _load_sampler_with_progress(
-            job_id, "Loading the SD3.5 image model (one-time, ~1 min)...",
-            "sd35", lambda: SD35FMTT(prompt=prompt, device=device, skip_t5=True))
-        _active_sampler = sampler
+        raise ValueError(f"unknown model {model!r}; "
+                         f"expected one of {sorted(_KNOWN_MODELS)}")
 
     # Non-regressing: after a cold model load the bar is already at ~45%
     # (real load progress) — never yank it back down to 12.
@@ -1647,9 +1621,9 @@ def _do_generate(job_id: str, req: dict) -> dict:
     _resident_model["key"] = model  # honest /api/models ordering
 
     # Monkey-patch _load_dino to use DINOv2 (public) instead of DINOv3 (gated).
-    # SanaInteractive and FluxFMWDMInteractive already use DINOv2 internally
-    # with the right load flags; only patch the older flux/sd35 samplers.
-    if model not in ("sana", "fluxfm", "krea2"):
+    # FluxFMWDMInteractive and the Krea sampler already use DINOv2 with the
+    # right load flags; only the FLUX sampler needs the patch.
+    if model not in ("fluxfm", "krea2"):
         def _load_dino_v2(self):
             # Idempotent: a warm-reused sampler already has DINO resident.
             if getattr(self, "dino_model", None) is not None:
