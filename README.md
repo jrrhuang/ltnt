@@ -22,15 +22,15 @@ sharpens.
 4. **Refine.** Each round generates variations closer to your picks, so the
    spread narrows as your taste sharpens.
 
-## Requirements
-
-- NVIDIA GPU with at least 40 GB of memory
-- CUDA 12.x driver
-- Python 3.10 or newer
-- 40 GB of free disk space
-- A Hugging Face account with access to FLUX.1-dev
+Variations branch partway through the generation, while the image is still
+unresolved, which is what gives them room to differ from what you picked.
+Images are embedded with DINOv2 and projected into two dimensions, which is
+what puts visually similar ones near each other on the canvas.
 
 ## Installation
+
+Needs an NVIDIA GPU with at least 40 GB of memory, a CUDA 12.x driver, Python
+3.10 or newer, and 40 GB of free disk.
 
 ```bash
 git clone https://github.com/jrrhuang/ltnt.git
@@ -42,10 +42,10 @@ bash download_models.sh
 ```
 
 FLUX.1-dev is gated. Accept the license at
-https://huggingface.co/black-forest-labs/FLUX.1-dev before downloading.
-`download_models.sh` fetches the flow-map LoRA, FLUX.1-dev, and DINOv2 into
-`models/`. It skips anything already present, so an interrupted download
-resumes by running it again.
+https://huggingface.co/black-forest-labs/FLUX.1-dev, then log in with
+`huggingface-cli login` so the download can reach it. `download_models.sh`
+skips anything already present, so an interrupted download resumes by running
+it again.
 
 ## Usage
 
@@ -56,52 +56,23 @@ bash run.sh
 Open http://localhost:8001, enter a prompt, and press GENERATE. The first
 prompt loads the model and takes a few minutes. Subsequent rounds take seconds.
 
-When the server runs on a remote machine, forward the port and open the same
-address locally.
+Set `PORT` to serve elsewhere, `LTNT_HOST=0.0.0.0` to bind all interfaces, and
+`LTNT_MODELS` to keep weights outside the repository. When the server runs on a
+remote machine, forward the port and open the same address locally.
 
 ```bash
 ssh -N -L 8001:localhost:8001 user@host
 ```
 
-## How it works
-
-A prompt starts many particles through a flow-matching or diffusion trajectory.
-The trajectory pauses partway, before the images have resolved, and each
-particle is previewed. Previews are embedded with DINOv2 and projected into two
-dimensions, which is what puts visually similar images near each other.
-
-Selecting an image generates variations from it. A variation renoises that
-image's intermediate state and integrates back down, so it resolves differently
-while staying conditioned on what the trajectory had already committed to.
-Branching partway through, while the image is still unresolved, is what gives
-the variations room to differ.
-
-`server/spawn/` holds the variation methods, picked by name from a registry.
-`distance` sets how far a variation travels from the image it came from, from 0
-at that image to 1 at an independent sample, and a narrowing schedule lowers it
-across rounds.
-
 ## Models
 
-| Model | Key | Notes |
-|---|---|---|
-| FLUX.1-dev with the flow-map LoRA | `fluxfm` | The default. 13 s per round. |
-| FLUX.1-dev | `flux` | The same backbone without the flow map. 25 s per round. |
-| Krea-2 | `krea2` | Higher quality, 83 s per round. Gated, and fetched only when `LTNT_WITH_KREA=1`. |
+FLUX.1-dev with a distilled flow-map LoRA is the default and takes about 13
+seconds per round on an L40S. Plain FLUX.1-dev takes 25 seconds, and Krea-2
+takes 83 seconds for higher quality. Krea-2 is gated separately and downloads
+only when `LTNT_WITH_KREA=1`.
 
-Times are for three variations on one L40S. LTNT runs on self-consistent
-flow-matching models. Distilled few-step models break the assumption the
-variation step relies on.
-
-## Configuration
-
-| Variable | Default | Effect |
-|---|---|---|
-| `PORT` | `8001` | Port the server listens on. |
-| `LTNT_HOST` | `127.0.0.1` | Interface to bind. Set `0.0.0.0` in a container. |
-| `LTNT_MODELS` | `./models` | Where weights are stored. |
-| `LTNT_WITH_KREA` | `0` | Fetch Krea-2 during download. |
-| `FLUXFM_CLONE_STEPS` | `4` | Flow-map jumps per variation. Raise for more detail. |
+LTNT runs on self-consistent flow-matching models. Distilled few-step models
+break the assumption the variation step relies on.
 
 ## Deployment
 
