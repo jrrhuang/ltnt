@@ -10,28 +10,16 @@ developing. Each pick generates new variations that stay close to it while
 resolving differently. A few rounds in, the spread narrows as your taste
 sharpens.
 
-## The loop
+## Workflow
 
-1. **Generate.** A prompt yields a spatial cluster of diverse candidates.
-2. **Make more like these.** Select favorites, and variations appear near them,
-   staying coherent with the pick.
-3. **Explore.** The canvas auto-organizes by visual similarity, using DINOv2
-   features.
-4. **Board.** Pin favorites to a persistent collection. Explore from a pin to
-   seed a new session.
-5. **Refine.** Early rounds are fast previews, enough to judge direction.
-   Deeper rounds resolve cleanly.
+1. **Generate.** A prompt fills the canvas with candidates.
+2. **Pick + "make more like these."** LTNT generates variations from your
+   selections.
+3. **Explore.** The canvas organizes itself by visual similarity.
+4. **Refine.** Repeat until the spread settles on what you want.
 
-## Model-agnostic
-
-LTNT runs on any self-consistent flow-matching model. FLUX.1-dev with a
-distilled flow-map LoRA is the default at about 13 seconds per round on an
-L40S. Plain FLUX.1-dev takes 25 seconds, and Krea-2-Raw takes 83 seconds at
-higher quality. To add a backend, implement the interface in
-[SAMPLER_INTERFACE.md](server/SAMPLER_INTERFACE.md).
-
-Distilled and turbo few-step models break the GLASS path consistency. Use a
-base or dev flow.
+Variations branch partway through generation, while the image is still
+unresolved. DINOv2 embeddings decide where images land on the canvas.
 
 ## Installation
 
@@ -50,8 +38,7 @@ bash download_models.sh
 FLUX.1-dev is gated. Accept the license at
 https://huggingface.co/black-forest-labs/FLUX.1-dev, then log in with
 `huggingface-cli login`. `download_models.sh` skips anything already present
-and can be re-run. Krea-2-Raw is gated separately and downloads only when
-`LTNT_WITH_KREA=1`.
+and can be re-run.
 
 ## Usage
 
@@ -62,10 +49,6 @@ bash run.sh
 Open http://localhost:8001, enter a prompt, and press GENERATE. The first
 prompt loads the model and takes a few minutes. Subsequent rounds take seconds.
 
-The core loop of generate, explore, cluster, make-more, and board runs with no
-API keys. Only the optional external edit providers need them, listed in
-[.env.example](server/.env.example).
-
 Set `PORT` to serve elsewhere, `LTNT_HOST=0.0.0.0` to bind all interfaces, and
 `LTNT_MODELS` to keep weights outside the repository. When the server runs on a
 remote machine, forward the port and open the same address locally.
@@ -74,14 +57,15 @@ remote machine, forward the port and open the same address locally.
 ssh -N -L 8001:localhost:8001 user@host
 ```
 
-## Method
+## Models
 
-Variations come from GLASS interactive sampling, which takes stochastic
-transitions from a deterministic, self-consistent flow, with Euler-lookahead
-previews at each checkpoint. Branching happens partway through generation,
-while the image is still unresolved. See
-[SAMPLER_INTERFACE.md](server/SAMPLER_INTERFACE.md) for the backend contract and
-`server/spawn/` for the variation methods.
+FLUX.1-dev with a distilled flow-map LoRA is the default and takes about 13
+seconds per round on an L40S. Plain FLUX.1-dev takes 25 seconds, and Krea-2
+takes 83 seconds for higher quality. Krea-2 is gated separately and downloads
+only when `LTNT_WITH_KREA=1`.
+
+LTNT runs on self-consistent flow-matching models. Distilled few-step models
+are unsupported.
 
 ## Deployment
 
@@ -89,4 +73,4 @@ TBD.
 
 ## License
 
-MIT. Model licenses differ, and FLUX.1-dev is non-commercial.
+MIT.
