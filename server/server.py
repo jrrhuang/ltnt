@@ -416,11 +416,13 @@ _MODEL_REPOS = {
     # weights resolve (the symlink into /data, compute-node-only).
     "fluxfm": ("FLUX-FM", "models--black-forest-labs--FLUX.1-dev", "FLUX_LOCAL_PATH"),
 }
-_FLUXFM_LORA = os.path.join(
-    os.environ.get("FLUXFM_LORA_PATH",
-                   os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                "models", "flux-flowmap-lora-512")),
-    "pytorch_lora_weights.safetensors")
+# download_models.sh and run.sh both use <repo>/models. Default here to the
+# same place so running server.py directly finds the weights too.
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_FLUXFM_LORA_DIR = os.environ.get(
+    "FLUXFM_LORA_PATH",
+    os.path.join(_REPO_ROOT, "models", "flux-flowmap-lora-512"))
+_FLUXFM_LORA = os.path.join(_FLUXFM_LORA_DIR, "pytorch_lora_weights.safetensors")
 
 
 def _model_loadable(key) -> bool:

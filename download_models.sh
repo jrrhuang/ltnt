@@ -3,7 +3,8 @@
 # Re-runnable: anything already present is skipped.
 set -euo pipefail
 
-MODEL_ROOT="${LTNT_MODELS:-$(pwd)/models}"
+REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
+MODEL_ROOT="${LTNT_MODELS:-$REPO_ROOT/models}"
 export HF_HOME="${HF_HOME:-$MODEL_ROOT}"
 export HUGGINGFACE_HUB_CACHE="${HUGGINGFACE_HUB_CACHE:-$HF_HOME/hub}"
 mkdir -p "$MODEL_ROOT" "$HUGGINGFACE_HUB_CACHE"
