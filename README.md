@@ -48,7 +48,7 @@ Set `LTNT_MODELS` to store weights outside the repository.
 
 ## Models
 
-LTNT supports FLUX.1-dev with Gabe Guo's distilled
+LTNT supports FLUX.1-dev with a distilled
 [flow-map LoRA](https://huggingface.co/gabeguofanclub/flux-1-dev-flowmap-lsd)
 for fast interaction, plain FLUX.1-dev, and Krea-2. The flow-map model is the
 default.
