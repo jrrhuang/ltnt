@@ -25,7 +25,7 @@ git clone https://github.com/jrrhuang/ltnt.git
 cd ltnt
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-huggingface-cli login
+hf auth login
 bash download_models.sh
 ```
 
