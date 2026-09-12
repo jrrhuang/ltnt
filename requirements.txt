@@ -15,7 +15,9 @@ click
 pillow==12.1.1
 numpy==2.4.3
 scikit-learn==1.9.0
+matplotlib
 umap-learn==0.5.12
+tqdm
 sentencepiece==0.2.1
 protobuf==7.34.1
 pytest
